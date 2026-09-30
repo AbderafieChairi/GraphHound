@@ -1,0 +1,212 @@
+{
+  "PHUser": {
+    "icon": {
+      "name": "fa-user-secret",
+      "color": "#58a6ff",
+      "type": "font-awesome"
+    }
+  },
+  "PHPrivTarget": {
+    "icon": {
+      "name": "fa-crown",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHEndpoint": {
+    "icon": {
+      "name": "fa-desktop",
+      "color": "#8b949e",
+      "type": "font-awesome"
+    }
+  },
+  "PHService": {
+    "icon": {
+      "name": "fa-gear",
+      "color": "#d29922",
+      "type": "font-awesome"
+    }
+  },
+  "PHUnquotedPath": {
+    "icon": {
+      "name": "fa-route",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHWritablePath": {
+    "icon": {
+      "name": "fa-folder-open",
+      "color": "#da3633",
+      "type": "font-awesome"
+    }
+  },
+  "PHRegistryMisconfig": {
+    "icon": {
+      "name": "fa-key",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHTokenPrivilege": {
+    "icon": {
+      "name": "fa-shield-halved",
+      "color": "#a371f7",
+      "type": "font-awesome"
+    }
+  },
+  "PHScheduledTask": {
+    "icon": {
+      "name": "fa-clock",
+      "color": "#7ee787",
+      "type": "font-awesome"
+    }
+  },
+  "PHAutoRun": {
+    "icon": {
+      "name": "fa-play",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHWritableRegKey": {
+    "icon": {
+      "name": "fa-pen-to-square",
+      "color": "#da3633",
+      "type": "font-awesome"
+    }
+  },
+  "PHStoredCredential": {
+    "icon": {
+      "name": "fa-unlock",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHGPPPassword": {
+    "icon": {
+      "name": "fa-key",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHUnattendFile": {
+    "icon": {
+      "name": "fa-file-lines",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHPSHistory": {
+    "icon": {
+      "name": "fa-terminal",
+      "color": "#58a6ff",
+      "type": "font-awesome"
+    }
+  },
+  "PHSensitiveFile": {
+    "icon": {
+      "name": "fa-file-shield",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHUACBypass": {
+    "icon": {
+      "name": "fa-shield",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHWritableProgramDir": {
+    "icon": {
+      "name": "fa-folder",
+      "color": "#da3633",
+      "type": "font-awesome"
+    }
+  },
+  "PHLocalUser": {
+    "icon": {
+      "name": "fa-user",
+      "color": "#d29922",
+      "type": "font-awesome"
+    }
+  },
+  "PHUserProfile": {
+    "icon": {
+      "name": "fa-address-card",
+      "color": "#58a6ff",
+      "type": "font-awesome"
+    }
+  },
+  "PHJITAdminTool": {
+    "icon": {
+      "name": "fa-user-clock",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHPrintSpooler": {
+    "icon": {
+      "name": "fa-print",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHWSUSConfig": {
+    "icon": {
+      "name": "fa-download",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHSCCMCredential": {
+    "icon": {
+      "name": "fa-server",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHCOMHijack": {
+    "icon": {
+      "name": "fa-puzzle-piece",
+      "color": "#a371f7",
+      "type": "font-awesome"
+    }
+  },
+  "PHNamedPipe": {
+    "icon": {
+      "name": "fa-faucet",
+      "color": "#f0883e",
+      "type": "font-awesome"
+    }
+  },
+  "PHCachedCreds": {
+    "icon": {
+      "name": "fa-database",
+      "color": "#d29922",
+      "type": "font-awesome"
+    }
+  },
+  "PHWMISubscription": {
+    "icon": {
+      "name": "fa-bolt",
+      "color": "#a371f7",
+      "type": "font-awesome"
+    }
+  },
+  "PHWebClientRelay": {
+    "icon": {
+      "name": "fa-share-nodes",
+      "color": "#f85149",
+      "type": "font-awesome"
+    }
+  },
+  "PHShadowCopy": {
+    "icon": {
+      "name": "fa-hard-drive",
+      "color": "#8b949e",
+      "type": "font-awesome"
+    }
+  }
+}

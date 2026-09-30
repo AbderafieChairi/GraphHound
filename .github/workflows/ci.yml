@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint (non-blocking until existing issues are fixed)
+        run: bun run lint
+        continue-on-error: true
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+        env:
+          NODE_ENV: production
+
+      - name: Smoke test production server
+        run: |
+          cd dist && npm install --omit=dev --no-audit --no-fund
+          PORT=3000 node server.js & 
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://localhost:3000/ && exit 0
+            sleep 1
+          done
+          echo "Server did not respond" && exit 1
+
+      - name: Smoke test bundled graph database
+        # Runs in a throwaway directory so ./data is never a real workspace.
+        run: |
+          WORK=$(mktemp -d)
+          MOD=$(grep -l "DETACH DELETE in resetDataset" "$PWD"/dist/server/assets/*.js)
+          cd "$WORK"
+          timeout 30 node --input-type=module -e "
+            const m = await import('file://$MOD');
+            console.log(m.statsFor(await m.resetDataset('ci-smoke')));
+          "
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: graphhound-dist
+          path: dist/
+          retention-days: 7

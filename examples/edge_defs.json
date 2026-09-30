@@ -1,0 +1,144 @@
+{
+  "docs": [
+    {
+      "name": "MemberOf",
+      "md_docs": "# MemberOf\n\nThe source object is a member of the target group. Nested membership resolves transitively, so a user several groups deep still reaches privileged groups.\n\n## Abuse\n- If you control a member of the group, you inherit the group's rights on every resource where the group is granted access (ACLs, local admin via *AdminTo*, delegation, etc.).\n- Membership in a high-value group (e.g. *DOMAIN ADMINS*) is usually a direct path to domain compromise.\n\n## Opsec\n- Adding yourself to a group generates **4728** (member added to global group), **4732** (domain local) or **4756** (universal) events on a domain controller.\n\n> Look for groups whose names contain DOMAIN ADMINS, ADMINISTRATORS or elevated tiers."
+    },
+    {
+      "name": "AdminTo",
+      "md_docs": "# AdminTo\n\nThe source principal is a local administrator on the target computer. The membership may come from the local *Administrators* group, the *BUILTIN* groups or group nesting resolved by the collector.\n\n## Abuse\n- Use remote administration to act as local admin: `psexec`, `wmicmp`, RDP, WinRM, or schedule a service/task on the host.\n- Local admin on a host implies credential dumping from *LSASS* and access to local secrets (LSA secrets, SAM, DPAPI, stored credentials).\n\n## Opsec\n- Remote service creation logs **7045**; RDP/WinRM sessions are recorded. Prefer in-memory tooling."
+    },
+    {
+      "name": "HasSession",
+      "md_docs": "# HasSession\n\nA user has an active logon session on the target computer (local, RDP, batch or service logon).\n\n## Abuse\n- If you have admin rights on the computer, dump the session's credentials from *LSASS* with mimikatz `sekurlsa::logonpasswords` or similar.\n- Compromising the host can therefore yield the user's credentials without touching their account.\n\n## Opsec\n- Sessions are point-in-time: the edge can disappear when the user logs off. Dumping LSASS is loud (AV/EDR)."
+    },
+    {
+      "name": "GenericAll",
+      "md_docs": "# GenericAll\n\nThe source has **full control** over the target object: write all properties, reset password, change group membership, and modify the object's ACL.\n\n## Abuse\n- Against a user: reset their password (`net user <user> <pass> /domain`) or write a *SPN* and kerberoast them.\n- Against a group: add yourself (`net group <group> <me> /add /domain`).\n- Against a computer: full control enables resource-based constrained delegation (RBCD) takeover.\n\n## Opsec\n- Password resets generate **4724**; group membership changes generate **4728/4732/4756**."
+    },
+    {
+      "name": "GenericWrite",
+      "md_docs": "# GenericWrite\n\nThe source can write any writable attribute on the target, but cannot reset passwords or rewrite the ACL.\n\n## Abuse\n- Against a user: set an *SPN* and kerberoast, or overwrite the *servicePrincipalName* / *userAccountControl* (e.g. force *DONT_REQ_PREAUTH* for AS-REP roasting).\n- Against a group: add yourself as a member via the *member* attribute.\n- Against a computer/GPO: edit attributes that influence code execution (GPC file path, RBCD *msDS-AllowedToActOnBehalfOfOtherIdentity*).\n\n## Opsec\n- Attribute writes are logged as **5136** directory changes; kerberoasting is passive for the DC."
+    },
+    {
+      "name": "WriteDacl",
+      "md_docs": "# WriteDacl\n\nThe source can modify the security descriptor (ACL) of the target object.\n\n## Abuse\n- Grant yourself *GenericAll* on the target with PowerView:\n\n`Add-DomainObjectAcl -TargetIdentity <target> -PrincipalIdentity <me> -Rights All`\n\n- Then abuse the new rights (reset password, add to group, etc.).\n\n## Opsec\n- ACL modifications log **5136** on the object's *nTSecurityDescriptor*."
+    },
+    {
+      "name": "WriteOwner",
+      "md_docs": "# WriteOwner\n\nThe source can change the owner of the target object. An owner can always rewrite the DACL, even without explicit rights.\n\n## Abuse\n1. Take ownership: `Set-DomainObjectOwner -Identity <target> -OwnerIdentity <me>`\n2. Grant yourself *GenericAll* via the new ownership.\n3. Act on the target (password reset, membership, ...).\n\n## Opsec\n- Owner changes appear in **5136** events (attribute *nTSecurityDescriptor* owner field)."
+    },
+    {
+      "name": "Owns",
+      "md_docs": "# Owns\n\nThe source currently **owns** the target object. Ownership implicitly allows the OWNER_RIGHTS-style rewrite of the object's security descriptor.\n\n## Abuse\n- Rewrite the target's DACL to grant yourself *GenericAll*, then reset passwords or add group members.\n\n## Opsec\n- Same as *WriteDacl*: watch for **5136** on the security descriptor."
+    },
+    {
+      "name": "ForceChangePassword",
+      "md_docs": "# ForceChangePassword\n\nThe source has the *User-Force-Change-Password* extended right on the target user: it can set the user's password without knowing the current one.\n\n## Abuse\n`net user <target> <newpass> /domain` or PowerView `Set-DomainUserPassword`.\n\n## Opsec\n- Generates **4724** (password reset) on a DC; the user notices at next logon."
+    },
+    {
+      "name": "AllExtendedRights",
+      "md_docs": "# AllExtendedRights\n\nThe source holds every extended control access right on the target (reset password, change password, replicate directory changes, ...).\n\n## Abuse\n- Against users: force password change.\n- Against computers: includes rights useful for RBCD (*msDS-AllowedToActOnBehalfOfOtherIdentity* writes via *GenericWrite*-style rights).\n- Against domains: includes *DS-Replication-Get-Changes* style rights on some configurations, which enables DCSync.\n\n## Opsec\n- Depends on the right used; password resets log **4724**."
+    },
+    {
+      "name": "AddMember",
+      "md_docs": "# AddMember\n\nThe source can add principals to the target group (write to the group's *member* attribute / *WriteMember* right).\n\n## Abuse\n`net group <group> <me> /add /domain` then inherit the group's privileges.\n\n## Opsec\n- Membership addition logs **4728/4732/4756** on the DC."
+    },
+    {
+      "name": "AddSelf",
+      "md_docs": "# AddSelf\n\nThe source can add **itself** to the target group (SELF write to *member*).\n\n## Abuse\n`net group <group> <me> /add /domain` — you must be the one joining; you cannot add others.\n\n## Opsec\n- Same event trail as *AddMember*: **4728/4732/4756**."
+    },
+    {
+      "name": "DCSync",
+      "md_docs": "# DCSync\n\nThe source has replication rights (*DS-Replication-Get-Changes* and *DS-Replication-Get-Changes-All*, commonly via *GetChanges/GetChangesAll* extended rights or domain admin equivalence) and can impersonate a domain controller.\n\n## Abuse\n- Request the hashes of any principal, including the *krbtgt* account:\n\n`mimikatz # lsadump::dcsync /user:krbtgt`\n\n- With the *krbtgt* hash, forge a **Golden Ticket** for persistent domain access.\n\n## Opsec\n- Replication requests mimic normal DC traffic (no new logon sessions), but the volume/pattern is detectable; password dumps via DCSync do not touch LSASS."
+    },
+    {
+      "name": "DCShadow",
+      "md_docs": "# DCShadow\n\nThe source has enough rights (typically *DCSync*-like replication plus registration as a DC in the configuration partition) to **register a fake domain controller and push arbitrary changes** (object attributes, membership) into the environment.\n\n## Abuse\n1. Register a fake DC (NTDS settings + replication objects).\n2. Push a chosen change (e.g. set an ACL or *adminCount*) from the fake DC.\n3. Deregister and remove traces.\n\n## Opsec\n- Very stealthy — changes come from a \"DC\" — but requires DA-level rights and careful cleanup of the configuration partition."
+    },
+    {
+      "name": "GetChanges",
+      "md_docs": "# GetChanges\n\nThe source holds the *DS-Replication-Get-Changes* extended control right on the target (domain or naming context). Alone it only permits regular replication; combine it with *GetChangesAll* (see *DCSync*) to dump credentials."
+    },
+    {
+      "name": "GetChangesAll",
+      "md_docs": "# GetChangesAll\n\nThe source holds *DS-Replication-Get-Changes-All* on the target. Together with *GetChanges* this enables secret replication (**DCSync**), including the *krbtgt* hash."
+    },
+    {
+      "name": "GpLink",
+      "md_docs": "# GpLink\n\nThe source (GPO or object) is linked to the target container (OU, domain, site). GPOs linked to an OU apply to every user/computer inside it.\n\n## Abuse\n- If you can edit the GPO (see *WriteGpLink*/*GenericWrite* on the GPO), push settings that grant code execution or local admin to all objects in the scope: immediate scheduled tasks, startup scripts, restricted groups.\n\n## Opsec\n- GPO edits (`gpcfilesyspath` changes) are visible in SYSVOL and audited with correct object-access auditing."
+    },
+    {
+      "name": "Contains",
+      "md_docs": "# Contains\n\nThe target object resides inside the source container (OU, container). Inheritance flows from the container: ACLs set on the OU apply to the contained users, groups and computers.\n\n## Abuse\n- If you have *GenericAll*/*WriteDacl* on the OU, you inherit control over everything inside it (inherited ACEs). Escalate via inherited rights rather than touching each object."
+    },
+    {
+      "name": "CanRDP",
+      "md_docs": "# CanRDP\n\nThe source can establish **Remote Desktop** sessions on the target computer (member of a group in the local *Remote Desktop Users* group, or equivalent).\n\n## Abuse\n- RDP to the host; without local admin you get a limited user session, but credentials typed into the session can still be harvested by an admin-level implant.\n\n## Opsec\n- Logs **4624** (type 10) and TerminalServices events on the host."
+    },
+    {
+      "name": "ExecuteDCOM",
+      "md_docs": "# ExecuteDCOM\n\nThe source can use **DCOM** on the target computer (e.g. member of the local *Distributed COM Users* group).\n\n## Abuse\n- Instantiate and abuse DCOM applications remotely — classic paths: *MMC20.Application*, *ShellWindows*, *Excel.Application* — to execute commands as the service account context.\n\n## Opsec\n- Creates **4624** type 3 logons and DCOM activation events."
+    },
+    {
+      "name": "AllowedToDelegate",
+      "md_docs": "# AllowedToDelegate\n\nThe source (user or computer) is allowed to delegate authentication to the target service (classic Kerberos **unconstrained/constrained delegation** without protocol transition).\n\n## Abuse\n- Compromise the source account, then request service tickets to the target service as any user (S4U2Proxy) — no password of the impersonated user needed.\n- Unconstrained delegation: capture a *TGT* of anyone authenticating to the host (printer bug / spooler abuse).\n\n## Opsec\n- Ticket requests are normal DC traffic; watch the source host for suspicious *s4u* activity."
+    },
+    {
+      "name": "AllowedToAct",
+      "md_docs": "# AllowedToAct\n\nThe target computer trusts the source (typically a machine account) via **resource-based constrained delegation** (*msDS-AllowedToActOnBehalfOfOtherIdentity*).\n\n## Abuse\n- With control of the source machine account, obtain service tickets to the target **as any user** (S4U2Self + S4U2Proxy) and access the host (e.g. WinRM, HOST) impersonating an administrator.\n\n## Opsec\n- Requires write on the attribute first; RBCD takeover is a common escalation after *GenericWrite* on a computer object."
+    },
+    {
+      "name": "ReadGMSAPassword",
+      "md_docs": "# ReadGMSAPassword\n\nThe source principal can read the **gMSA** password of the target account (*msDS-GroupMSAMembership* allows it).\n\n## Abuse\n- Retrieve the password blob (NT hash) with `gMSADumper` or DSInternals, then authenticate as the gMSA anywhere its password is valid — often a highly privileged service account.\n\n## Opsec\n- Reading the attribute is a simple LDAP read — quiet, but the resulting account may be very sensitive."
+    },
+    {
+      "name": "WriteSPN",
+      "md_docs": "# WriteSPN\n\nThe source can write the *servicePrincipalName* attribute on the target user.\n\n## Abuse\n1. Add an SPN you control to the target user.\n2. Request a TGS for that SPN (**kerberoast**) and crack the ticket offline to recover the user's password.\n\n## Opsec\n- SPN write logs **5136**; ticket request is a normal KRB_TGS_REQ. Cracking is offline and invisible to the domain."
+    },
+    {
+      "name": "AddKeyCredentialLink",
+      "md_docs": "# AddKeyCredentialLink\n\nThe source can modify the *msDS-KeyCredentialLink* attribute on the target — the backbone of **Shadow Credentials** attacks.\n\n## Abuse\n1. Generate a key pair and append your public key to the target's *msDS-KeyCredentialLink*.\n2. Obtain a certificate / PKINIT TGT as the target user.\n3. Request their NT hash via U2U (`request /u2u`), then clean the attribute.\n\n## Opsec\n- Requires domain functional level 2016+ and a DC certificate; attribute writes log **5136**."
+    },
+    {
+      "name": "SQLAdmin",
+      "md_docs": "# SQLAdmin\n\nThe source principal is an administrator (e.g. *sysadmin* role) on the target SQL Server instance.\n\n## Abuse\n- Connect and enable `xp_cmdshell` for OS command execution as the SQL service account, or abuse trusted links (chained *openquery* logins) to pivot to other SQL servers.\n\n## Opsec\n- Logins and `xp_cmdshell` re-enabling are recorded in the SQL Server audit log."
+    },
+    {
+      "name": "AZMemberOf",
+      "md_docs": "# AZMemberOf\n\nAzure (AzureAD/Entra ID) variant of *MemberOf*: the source object is a member of the target Azure group. Transitive membership can reach highly privileged cloud groups (e.g. Global Administrator adjacent roles)."
+    },
+    {
+      "name": "AZAdminTo",
+      "md_docs": "# AZAdminTo\n\nThe source has an Azure role assignment (Owner/Contributor or privileged built-in role) over the target Azure resource (VM, Key Vault, storage, ...)."
+    },
+    {
+      "name": "AZRunsAs",
+      "md_docs": "# AZRunsAs\n\nThe source (managed identity or service principal) runs as the identity of the target Azure resource — compromising the resource yields that identity's tokens and its role assignments."
+    },
+    {
+      "name": "AZGetCertificates",
+      "md_docs": "# AZGetCertificates\n\nThe source can read certificates from the target Azure Key Vault — often enough to authenticate as the principal the certificate belongs to (or decrypt protected secrets)."
+    },
+    {
+      "name": "AZGetSecrets",
+      "md_docs": "# AZGetSecrets\n\nThe source has secret-read permissions on the target Azure Key Vault. Dumped secrets frequently contain credentials that unlock further systems (databases, service accounts, API keys)."
+    },
+    {
+      "name": "AZAddMember",
+      "md_docs": "# AZAddMember\n\nThe source can add principals to the target Azure group. Adding yourself to a privileged group is the classic Entra ID privilege escalation."
+    },
+    {
+      "name": "AZGrant",
+      "md_docs": "# AZGrant\n\nThe source can assign Azure role grants (*Microsoft.Authorization/roleAssignments/write*) on the target — grant yourself a higher-privileged role on the scope."
+    },
+    {
+      "name": "AZResetPassword",
+      "md_docs": "# AZResetPassword\n\nThe source can reset the target Azure user's password. Password reset of a privileged user is a direct cloud takeover path."
+    },
+    {
+      "name": "AZOwns",
+      "md_docs": "# AZOwns\n\nThe source is listed as **owner** of the target Azure object. Object owners can often edit the object's role assignments and properties, escalating without an explicit RBAC role."
+    }
+  ]
+}
